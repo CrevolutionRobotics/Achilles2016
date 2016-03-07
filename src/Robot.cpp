@@ -30,6 +30,7 @@ private:
 	    CameraServer::GetInstance()->SetQuality(50);
 
 	    CameraServer::GetInstance()->StartAutomaticCapture("cam1");
+
 		front_left_motor = new CANTalon(1);
 		rear_left_motor = new CANTalon(2);
 		front_right_motor = new CANTalon(3);
@@ -54,48 +55,76 @@ private:
 	}
 
 
-	/**
-	 * This autonomous (along with the chooser code above) shows how to select between different autonomous modes
-	 * using the dashboard. The sendable chooser code works with the Java SmartDashboard. If you prefer the LabVIEW
-	 * Dashboard, remove all of the chooser code and uncomment the GetString line to get the auto name from the text box
-	 * below the Gyro
-	 *
-	 * You can add additional auto modes by adding additional comparisons to the if-else structure below with additional strings.
-	 * If using the SendableChooser make sure to add them to the chooser code above as well.
-	 */
+
 	void AutonomousInit()
 	{
 		left_encoder->Reset();
 
 	}
-
+/* This area of the code is for the autonomous actions that the robot must complete during autonomous period of the match.
+ *
+ * The structure of the code is outlined below:
+ *
+ * The autonomous code is organized by a switch/case function. The list of autons and their description is shown inside the AutonomousPeriodic() function
+ *
+ * auton_chooser: this variable controls which auton a script should run in the matc.h
+ * Description of autons listed below
+ *
+ * auto_counter: this variable is used as a mimic time based function that uses the RoboRIO's clock to mimic time.
+ * when auto_counter =  100  = 1 second
+ *
+ *
+ *
+ */
 	void AutonomousPeriodic()
 	{
-		int autochooser = 6;
-		int autocounter = 0;
+		int auto_chooser = 6;
+		int auto_counter = 0;
 		while(IsAutonomous())
 		{
 			double pote = potcrack->Get();
 			int left_encoder_value = left_encoder->Get();
 			//SmartDashboard::PutNumber("pote value", pote);
 			//SmartDashboard::PutNumber("left encoder value", left_encoder_value);
-			switch(autochooser)
+			switch(auto_chooser)
 			{
-			case 1:
+				case 1:
 				// auton for going over most defense that only require drivetrain
 				//goes through low bar CHANGED SPEED TO 0.75 BC ARM WENT OPPOSITE
 				{
-				while(autocounter < 200 )
-				{
-				arm->Set(0.75);
-				autocounter++;
+				// This while loop allows the arm to drop from starting configuration to be able to pass through the low bar
+					while(auto_counter < 200 )
+					{
+						arm->Set(0.75);
+						auto_counter++;
+					}
+					arm->Set(0);
+				//  This while loop controls the drivetrain to drive through any of the drive train based defense
+					while(left_encoder->Get() < 1400)
+					{
+					// Don't need to go fast in auton, percision is the key to sucess
+						first_person_drive->SetLeftRightMotorOutputs(0.515, 0.515);
+					}
+					first_person_drive->SetLeftRightMotorOutputs(0, 0);
+				break;
+				// End of auton
 				}
-				arm->Set(0);
-				while(left_encoder->Get() < 1400)
+			case 3:
+			{
+				while(potcrack->Get() > 0.934)
 				{
-					first_person_drive->SetLeftRightMotorOutputs(0.515, 0.515);
+					arm->Set(.6);
 				}
-				first_person_drive->SetLeftRightMotorOutputs(0, 0);
+				while(auto_counter < 100 )
+				{
+					first_person_drive->SetLeftRightMotorOutputs(0, 0);
+					auto_counter++;
+				}
+				while(left_encoder->Get() < m1_a1)
+				{
+					first_person_drive->SetLeftRightMotorOutputs(0.715, 0.715);
+				}
+	     		first_person_drive->SetLeftRightMotorOutputs(0, 0);
 				break;
 			}
 
@@ -109,10 +138,10 @@ private:
 					first_person_drive->SetLeftRightMotorOutputs(0.515, 0.515);
 				}
 				first_person_drive->SetLeftRightMotorOutputs(0, 0);
-				while(autocounter < 500 )
+				while(auto_counter < 500 )
 				{
 					first_person_drive->SetLeftRightMotorOutputs(0, 0);
-					autocounter++;
+					auto_counter++;
 				}
 				while(left_encoder->Get() < 1400)
 				{
@@ -126,36 +155,64 @@ private:
 				break;
 			}
 			case 4:// auton for going over most defense that only require drivetrain
-						{
-							while(autocounter < 650)
-							{
-								left_encoder_value = left_encoder->Get();
-								SmartDashboard::PutNumber("pote value", pote);
-								SmartDashboard::PutNumber("left encoder value", left_encoder_value);
-								first_person_drive->SetLeftRightMotorOutputs(0.515, 0.515);
-								autocounter++;
-							}
-							first_person_drive->SetLeftRightMotorOutputs(0, 0);
-							break;
-						}
-			case 3:
 			{
-				while(potcrack->Get() > 0.934)
+
+				while(auto_counter < 650)
 				{
-					arm->Set(.6);
-				}
-				while(autocounter < 100 )
-				{
-					first_person_drive->SetLeftRightMotorOutputs(0, 0);
-					autocounter++;
-				}
-				while(left_encoder->Get() < m1_a1)
-				{
-					first_person_drive->SetLeftRightMotorOutputs(0.715, 0.715);
+					left_encoder_value = left_encoder->Get();
+					SmartDashboard::PutNumber("pote value", pote);
+					SmartDashboard::PutNumber("left encoder value", left_encoder_value);
+					first_person_drive->SetLeftRightMotorOutputs(0.515, 0.515);
+					auto_counter++;
 				}
 				first_person_drive->SetLeftRightMotorOutputs(0, 0);
 				break;
+
 			}
+			case 5: // going over defense that requires only drive-train, then coming back for quick damage to defense
+						{
+							while(left_encoder->Get() < m1_a1)
+										{
+											first_person_drive->SetLeftRightMotorOutputs(0.515, 0.515);
+										}
+											first_person_drive->SetLeftRightMotorOutputs(0, 0);
+							while(left_encoder->Get() > 300)
+										{
+											first_person_drive->SetLeftRightMotorOutputs(-0.515,-0.515);
+										}
+											first_person_drive->SetLeftRightMotorOutputs(0, 0);
+										break;
+						}
+						case 6://Goes through Low Bar and then back through to start position
+						{
+							while(auto_counter < 230 )
+								{
+								arm->Set(0.70);
+								auto_counter++;
+								}
+							arm->Set(0);
+							while(left_encoder->Get() < 1600 && completed_run)
+								{
+								first_person_drive->SetLeftRightMotorOutputs(0.4, 0.4);
+								}
+							first_person_drive->SetLeftRightMotorOutputs(0, 0);
+							while(left_encoder->Get() > 240 && completed_run)
+								{
+								first_person_drive->SetLeftRightMotorOutputs(-0.4, -0.4);
+								}
+							first_person_drive->SetLeftRightMotorOutputs(0, 0);
+							completed_run = false;
+							break;
+
+						}
+						case 7://Goes over Rockwall
+						{
+							while(left_encoder->Get() < 1600 && completed_run)
+							{
+								first_person_drive->SetLeftRightMotorOutputs(0.4, 0.4);
+												}
+											first_person_drive->SetLeftRightMotorOutputs(0, 0);
+						}
 			case 9: // herpderp
 			{
 				left_encoder->Reset();
@@ -164,50 +221,7 @@ private:
 				intake_roller->Set(0);
 				break;
 			}
-			case 5: // going over defense that requires only drive-train, then coming back for quick damage to defense
-			{
-				while(left_encoder->Get() < m1_a1)
-							{
-								first_person_drive->SetLeftRightMotorOutputs(0.515, 0.515);
-							}
-								first_person_drive->SetLeftRightMotorOutputs(0, 0);
-				while(left_encoder->Get() > 300)
-							{
-								first_person_drive->SetLeftRightMotorOutputs(-0.515,-0.515);
-							}
-								first_person_drive->SetLeftRightMotorOutputs(0, 0);
-							break;
-			}
-			case 6://Goes through Low Bar and then back through to start position
-			{
-				while(autocounter < 230 )
-					{
-					arm->Set(0.70);
-					autocounter++;
-					}
-				arm->Set(0);
-				while(left_encoder->Get() < 1600 && completed_run)
-					{
-					first_person_drive->SetLeftRightMotorOutputs(0.4, 0.4);
-					}
-				first_person_drive->SetLeftRightMotorOutputs(0, 0);
-				while(left_encoder->Get() > 240 && completed_run)
-					{
-					first_person_drive->SetLeftRightMotorOutputs(-0.4, -0.4);
-					}
-				first_person_drive->SetLeftRightMotorOutputs(0, 0);
-				completed_run = false;
-				break;
 
-			}
-			case 7://Goes over Rockwall
-			{
-				while(left_encoder->Get() < 1600 && completed_run)
-				{
-					first_person_drive->SetLeftRightMotorOutputs(0.4, 0.4);
-									}
-								first_person_drive->SetLeftRightMotorOutputs(0, 0);
-			}
 			}
 		}
 	}
@@ -284,12 +298,6 @@ private:
 			arm->Set(0.75*operator_controller->GetRawAxis(1));
 		}
 	}
-
-	void ArmControl()
-	{
-
-	}
-
 //	void drive_controls(int drive_type)
 //	{
 //		if(drive_type == 1)// first person shooter
@@ -320,6 +328,7 @@ private:
 			SmartDashboard::PutNumber("left encoder value", left_encoder_value);
 
 			first_person_drive->SetLeftRightMotorOutputs(-driver_controller->GetRawAxis(1) + driver_controller->GetRawAxis(2), -driver_controller->GetRawAxis(1) - driver_controller->GetRawAxis(2));
+
 			if(operator_controller->GetRawButton(7))
 			{
 				intake_roller->Set(1);
